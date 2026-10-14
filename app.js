@@ -295,7 +295,7 @@
             <div class="moderator-actions-bar">
               <div class="input-group">
                 <label for="numGroups"><i class="fa-solid fa-users-line"></i> Nre. d'equips:</label>
-                <input type="number" id="numGroups" class="input-number" value="4" min="2" max="25">
+                <input type="number" id="numGroups" class="input-number" value="1" min="2" max="25">
               </div>
 
               <button class="btn-main" onclick="generateHeterogeneousGroups()">
