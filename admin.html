@@ -113,8 +113,8 @@
       <div class="modal-icon" style="border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(0, 229, 255, 0.1);">
         <i class="fa-solid fa-layer-group"></i>
       </div>
-      <h3 class="modal-title">Canviar de sessió</h3>
-      <p class="modal-desc">Introdueix el nom o identificador de la sessió on vols treballar (ex: GRUP1-XTCD-TGN, GRUP2-XTCD-TGN):</p>
+      <h3 class="modal-title" id="session-modal-title">Canviar de sessió</h3>
+      <p class="modal-desc" id="session-modal-description">Introdueix el nom o identificador de la sessió on vols treballar (ex: GRUP1-XTCD-TGN, GRUP2-XTCD-TGN):</p>
       
       <div class="form-group" style="text-align: left;">
         <input type="text" id="new-session-input" placeholder="Ex: GRUP1-XTCD-TGN">
@@ -122,7 +122,7 @@
 
       <div class="modal-buttons">
         <button class="btn-secondary btn-full" onclick="closeSessionModal()">Cancel·lar</button>
-        <button class="btn-main btn-full" onclick="confirmChangeSession()">Canviar sessió</button>
+        <button class="btn-main btn-full" id="session-modal-confirm" onclick="confirmChangeSession()">Canviar sessió</button>
       </div>
     </div>
   </div>

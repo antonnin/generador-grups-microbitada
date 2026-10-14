@@ -137,7 +137,7 @@
       if (val === '__NEW__') {
         const select = document.getElementById('session-select-dropdown');
         if (select) select.value = currentSession;
-        openSessionModal();
+        openSessionModal(true);
         return;
       }
       switchActiveSession(val);
@@ -163,9 +163,6 @@
       knownSessions.add(currentSession);
       localStorage.setItem("microbitada_current_session", currentSession);
       updateHeaderSessionDisplay();
-
-      // Assegurar a Firestore
-      ensureSessionDocument(currentSession);
 
       // Actualitzar paràmetre URL sense recarregar la pàgina
       const url = new URL(window.location);
@@ -230,7 +227,10 @@
       const app = document.getElementById('app');
       
       // Assegurar existència de la sessió a Firestore
-      ensureSessionDocument(currentSession);
+      ensureSessionDocument(currentSession).catch((error) => {
+        console.error("No s'ha pogut crear o actualitzar la sessió a Firebase:", error);
+        showToast("Error en desar la sessió a Firebase: " + (error.code || error.message), "error");
+      });
 
       app.innerHTML = `
         <div class="dashboard">
@@ -254,7 +254,7 @@
             </div>
 
             <div class="qr-actions">
-              <button class="btn-secondary" onclick="openSessionModal()">
+              <button class="btn-secondary" onclick="openSessionModal(true)">
                 <i class="fa-solid fa-plus"></i> Crear una nova sessió
               </button>
               <button class="btn-secondary" onclick="copyStudentLink()">
@@ -802,7 +802,7 @@
           <div class="sessions-shelf">
             <div class="shelf-title">
               <span><i class="fa-solid fa-folder-tree"></i> Sessions trobades a Firebase:</span>
-              <button class="btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="openSessionModal()">
+              <button class="btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="openSessionModal(true)">
                 <i class="fa-solid fa-plus"></i> Nova sessió
               </button>
             </div>
@@ -1212,10 +1212,21 @@
     }
 
     // --- GESTIÓ DEL MODAL DE SESSIÓ ---
-    function openSessionModal() {
+    function openSessionModal(createNew = false) {
       const modal = document.getElementById('change-session-modal');
       const input = document.getElementById('new-session-input');
-      if (input) input.value = currentSession;
+      const title = document.getElementById('session-modal-title');
+      const description = document.getElementById('session-modal-description');
+      const confirmButton = document.getElementById('session-modal-confirm');
+
+      if (input) input.value = createNew ? '' : currentSession;
+      if (title) title.textContent = createNew ? 'Crear una nova sessió' : 'Canviar de sessió';
+      if (description) {
+        description.textContent = createNew
+          ? 'Introdueix un identificador per a la nova sessió (ex: GRUP2-XTCD-TGN):'
+          : 'Introdueix el nom o identificador de la sessió on vols treballar (ex: GRUP1-XTCD-TGN, GRUP2-XTCD-TGN):';
+      }
+      if (confirmButton) confirmButton.textContent = createNew ? 'Crear sessió' : 'Canviar sessió';
       if (modal) modal.style.display = 'flex';
       setTimeout(() => input && input.focus(), 100);
     }
@@ -1227,40 +1238,36 @@
 
     async function confirmChangeSession() {
       const input = document.getElementById('new-session-input');
+      if (!input) return;
       const newSession = input.value.trim().toUpperCase();
 
       if (!newSession) {
         showToast("Escriu un nom per a la sessió", "error");
         return;
       }
+      if (newSession.includes('/') || newSession === '.' || newSession === '..' || /^__.*__$/.test(newSession)) {
+        showToast("Aquest identificador no és vàlid per a una sessió", "error");
+        return;
+      }
 
-      currentSession = newSession;
-      knownSessions.add(currentSession);
-      localStorage.setItem("microbitada_current_session", currentSession);
-      updateHeaderSessionDisplay();
+      try {
+        await ensureSessionDocument(newSession);
+      } catch (error) {
+        console.error("No s'ha pogut crear la sessió a Firebase:", error);
+        showToast("Error en crear la sessió a Firebase: " + (error.code || error.message), "error");
+        return;
+      }
+
       closeSessionModal();
-
-      await ensureSessionDocument(currentSession);
-      showToast(`Sessió canviada a ${currentSession}`, "success");
-      updateSessionDropdownOptions();
-
-      // Actualitzar URL
-      const url = new URL(window.location);
-      url.searchParams.set('session', currentSession);
-      window.history.replaceState({}, '', url);
-
-      renderCurrentView();
+      switchActiveSession(newSession);
+      showToast(`Sessió ${newSession} creada o oberta`, "success");
     }
 
     async function ensureSessionDocument(sId) {
-      try {
-        await window.fs.setDoc(window.fs.doc(window.db, "sessions", sId), {
-          name: sId,
-          lastActive: Date.now()
-        }, { merge: true });
-      } catch (e) {
-        console.warn("No s'ha pogut actualitzar el document arrel de sessió:", e);
-      }
+      await window.fs.setDoc(window.fs.doc(window.db, "sessions", sId), {
+        name: sId,
+        lastActive: Date.now()
+      }, { merge: true });
     }
 
     // --- UTILITATS ---
